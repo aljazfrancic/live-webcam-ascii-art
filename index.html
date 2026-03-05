@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Webcam ASCII Art</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="controls">
+      <h1>ASCII Cam</h1>
+
+      <div class="control-group">
+        <button id="btn-toggle" title="Start / Stop webcam">Start Camera</button>
+        <button id="btn-screenshot" title="Save snapshot as image" disabled>Screenshot</button>
+      </div>
+
+      <div class="control-group">
+        <label for="resolution">Resolution</label>
+        <input type="range" id="resolution" min="40" max="200" value="100">
+        <span id="resolution-val">100</span>
+      </div>
+
+      <div class="control-group">
+        <label for="font-size">Font Size</label>
+        <input type="range" id="font-size" min="4" max="20" value="8">
+        <span id="font-size-val">8px</span>
+      </div>
+
+      <div class="control-group">
+        <label for="ramp-select">Char Ramp</label>
+        <select id="ramp-select">
+          <option value="standard" selected>Standard</option>
+          <option value="simple">Simple</option>
+          <option value="detailed">Detailed</option>
+          <option value="blocks">Blocks</option>
+        </select>
+      </div>
+
+      <div class="control-group toggles">
+        <label class="toggle-label">
+          <input type="checkbox" id="color-mode"> Color
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="invert"> Invert
+        </label>
+      </div>
+    </header>
+
+    <main id="output-area">
+      <pre id="ascii-output">Press "Start Camera" to begin.</pre>
+    </main>
+  </div>
+
+  <video id="webcam" autoplay playsinline></video>
+
+  <script src="app.js"></script>
+</body>
+</html>
