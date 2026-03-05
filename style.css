@@ -39,16 +39,18 @@ body {
   height: 0;
 }
 
-/* ---- Controls bar ---- */
+/* ---- Controls header ---- */
 #controls {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 0.6rem 1rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  flex-wrap: wrap;
+}
+
+#controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 1rem;
 }
 
 #controls h1 {
@@ -57,6 +59,24 @@ body {
   letter-spacing: 0.05em;
   color: var(--accent);
   white-space: nowrap;
+}
+
+#btn-menu {
+  display: none;
+  margin-left: auto;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.3rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border);
+}
+
+#controls-drawer {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0 1rem 0.6rem;
+  flex-wrap: wrap;
 }
 
 .control-group {
@@ -193,9 +213,22 @@ select:focus {
 
 /* ---- Responsive ---- */
 @media (max-width: 700px) {
-  #controls {
-    gap: 0.6rem;
+  #controls-bar {
     padding: 0.5rem 0.6rem;
+  }
+
+  #btn-menu {
+    display: inline-block;
+  }
+
+  #controls-drawer {
+    display: none;
+    gap: 0.6rem;
+    padding: 0.4rem 0.6rem 0.6rem;
+  }
+
+  #controls-drawer.open {
+    display: flex;
   }
 
   input[type="range"] {

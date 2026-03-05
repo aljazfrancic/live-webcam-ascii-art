@@ -9,12 +9,16 @@
 <body>
   <div id="app">
     <header id="controls">
-      <h1>ASCII Cam</h1>
-
-      <div class="control-group">
-        <button id="btn-toggle" title="Start / Stop webcam">Start Camera</button>
-        <button id="btn-screenshot" title="Save snapshot as image" disabled>Screenshot</button>
+      <div id="controls-bar">
+        <h1>ASCII Cam</h1>
+        <div class="control-group">
+          <button id="btn-toggle" title="Start / Stop webcam">Start Camera</button>
+          <button id="btn-screenshot" title="Save snapshot as image" disabled>Screenshot</button>
+        </div>
+        <button id="btn-menu" title="Toggle controls" aria-label="Toggle controls">&#9776;</button>
       </div>
+
+      <div id="controls-drawer">
 
       <div class="control-group">
         <label for="resolution">Resolution</label>
@@ -45,6 +49,7 @@
         <label class="toggle-label">
           <input type="checkbox" id="invert"> Invert
         </label>
+      </div>
       </div>
     </header>
 

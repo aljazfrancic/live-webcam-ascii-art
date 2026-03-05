@@ -21,6 +21,8 @@
   const rampSelect   = document.getElementById("ramp-select");
   const colorModeIn  = document.getElementById("color-mode");
   const invertIn     = document.getElementById("invert");
+  const btnMenu      = document.getElementById("btn-menu");
+  const drawer       = document.getElementById("controls-drawer");
 
   // ---- State ----
   let stream    = null;
@@ -159,12 +161,14 @@
     const mCtx = measureCanvas.getContext("2d");
     const font = `${fontSize}px "Courier New", Courier, monospace`;
     mCtx.font = font;
-    const charW = mCtx.measureText("M").width;
-    const charH = fontSize * 1.15;
+    const baseCharW = mCtx.measureText("M").width;
+    const letterSpacing = fontSize * 0.05;
+    const cellW = baseCharW + letterSpacing;
+    const cellH = fontSize;
 
     const padding = 16;
-    const imgW = Math.ceil(charW * maxLen) + padding * 2;
-    const imgH = Math.ceil(charH * lines.length) + padding * 2;
+    const imgW = Math.ceil(cellW * maxLen) + padding * 2;
+    const imgH = Math.ceil(cellH * lines.length) + padding * 2;
 
     const shotCanvas = document.createElement("canvas");
     shotCanvas.width  = imgW;
@@ -184,16 +188,17 @@
           const span = pre.children[idx];
           if (span) {
             sCtx.fillStyle = span.style.color || "#e0e0e0";
-            sCtx.fillText(span.textContent, padding + col * charW, padding + row * charH);
+            sCtx.fillText(span.textContent, padding + col * cellW, padding + row * cellH);
           }
           idx++;
         }
-        idx++; // skip newline text node
       }
     } else {
       sCtx.fillStyle = "#e0e0e0";
       for (let row = 0; row < lines.length; row++) {
-        sCtx.fillText(lines[row], padding, padding + row * charH);
+        for (let col = 0; col < lines[row].length; col++) {
+          sCtx.fillText(lines[row][col], padding + col * cellW, padding + row * cellH);
+        }
       }
     }
 
@@ -236,4 +241,29 @@
   invertIn.addEventListener("change", () => {
     invert = invertIn.checked;
   });
+
+  btnMenu.addEventListener("click", () => {
+    drawer.classList.toggle("open");
+  });
+
+  // ---- Auto-fit defaults to viewport ----
+  function autoFit() {
+    const vw = window.innerWidth;
+    const idealCols = Math.max(40, Math.min(Math.floor(vw / 5), 200));
+    cols = idealCols;
+    resolutionIn.value = cols;
+    resolutionVal.textContent = cols;
+
+    if (vw < 500) {
+      fontSize = 5;
+    } else if (vw < 900) {
+      fontSize = 6;
+    } else {
+      fontSize = 8;
+    }
+    fontSizeIn.value = fontSize;
+    fontSizeVal.textContent = fontSize + "px";
+    asciiOutput.style.fontSize = fontSize + "px";
+  }
+  autoFit();
 })();
