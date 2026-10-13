@@ -70,6 +70,8 @@
   const EDGE_THRESHOLD = 170;           // Sobel magnitude on the 0–255 ink scale
   const SNAPSHOT_TARGET = 2400;         // snapshots are re-rendered to roughly this long side
   const REC_MAX_MS = 60000;
+  const STALL_MS = 1500;                // a live camera that sends no frame for this long is reconnected…
+  const RETRY_MS = 10000;               // …unless that already happened this recently
   const STORE_KEY = "ascii-cam:v2";
   const IDLE_HINT = "Your video never leaves this device.";
   const GLYPH_FONT = 'ui-monospace, Menlo, Consolas, "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Roboto Mono", monospace';
@@ -243,7 +245,10 @@
   };
   // What is on screen right now, for copy-as-text and snapshots.
   const shown = { cols: 0, rows: 0, atlas: null, frame: null };
-  const cam = { stream: null, token: 0, busy: false, deviceId: "", facing: "", devices: [] };
+  const cam = {
+    stream: null, token: 0, busy: false, deviceId: "", facing: "", devices: [],
+    frameAt: 0, frames: 0, interrupted: false, retriedAt: -Infinity, // health, see watchCamera()
+  };
   const frozen = document.createElement("canvas");
 
   // ---------------------------------------------------------------------------
@@ -1042,8 +1047,10 @@ void main() {
   let loopHandle = 0;
   let lastTick = -Infinity;
   let vfcSeen = false;
+  let vfcWorks = false;
   let vfcBroken = false;
-  let vfcWatchdog = 0;
+  let watchTimer = 0;
+  let watchStart = 0;
   let soonHandle = 0;
   const stat = { frames: 0, work: 0, since: 0, total: 0, last: 0 };
 
@@ -1096,7 +1103,8 @@ void main() {
     else if (loopKind === "raf") cancelAnimationFrame(loopHandle);
     loopKind = "";
     loopHandle = 0;
-    clearTimeout(vfcWatchdog);
+    clearInterval(watchTimer);
+    watchTimer = 0;
   }
 
   function startLoop() {
@@ -1108,27 +1116,60 @@ void main() {
       loopKind = "vfc";
       vfcSeen = false;
       loopHandle = video.requestVideoFrameCallback(onVideoFrame);
-      vfcWatchdog = setTimeout(checkVideoFrames, 1500);
     } else if (state === "live" || (state === "idle" && !reducedMotion.matches)) {
       loopKind = "raf";
       loopHandle = requestAnimationFrame(onAnimationFrame);
     } else {
       renderSoon();
     }
-  }
-
-  function checkVideoFrames() {
-    if (loopKind !== "vfc" || vfcSeen) return;
-    if (cam.stream && !video.paused && video.readyState >= 2) {
-      vfcBroken = true; // frames are arriving but callbacks are not: poll with rAF instead
-      startLoop();
-    } else {
-      vfcWatchdog = setTimeout(checkVideoFrames, 1500);
+    if (state === "live") {
+      watchStart = cam.frameAt = performance.now(); // the camera gets a moment to deliver
+      cam.frames = videoFrames();
+      watchTimer = setInterval(watchCamera, 500);
+      watchCamera();
     }
   }
 
+  // Frames the video element has received; 0 where camera streams aren't counted (Firefox).
+  function videoFrames() {
+    const q = video.getVideoPlaybackQuality ? video.getVideoPlaybackQuality() : null;
+    return (q && q.totalVideoFrames) || 0;
+  }
+
+  // Runs while live. When another app takes the camera (a phone's own camera app, a call)
+  // the stream often stays "live" but sends nothing, and browsers may pause the video in
+  // the background: play it again, and if frames still don't come, reconnect.
+  function watchCamera() {
+    if (state !== "live" || cam.busy) return;
+    const track = cam.stream && cam.stream.getVideoTracks()[0];
+    if (!track || track.readyState === "ended") {
+      cameraEnded();
+      return;
+    }
+    const now = performance.now();
+    const frames = videoFrames();
+    // New frames: the counter moved, or (where nothing counts them) the track is playing.
+    if (frames > cam.frames || (loopKind === "raf" && !frames && !track.muted && !video.paused)) {
+      cam.frameAt = now;
+      cam.interrupted = false;
+    }
+    cam.frames = frames;
+    if (loopKind === "vfc" && !vfcSeen && now - watchStart >= 1000 &&
+        (cam.frameAt > watchStart || (!frames && !vfcWorks && !track.muted && !video.paused))) {
+      // Frames arrive (or can't be counted and nothing looks wrong) but no frame callback
+      // ever came: poll with rAF instead. A camera that simply stalled is handled below.
+      vfcBroken = true;
+      startLoop();
+      return;
+    }
+    if (video.paused) video.play().catch(() => {});
+    if (now - cam.frameAt > STALL_MS) reconnect();
+  }
+
   function onVideoFrame(now) {
-    vfcSeen = true;
+    vfcSeen = vfcWorks = true;
+    cam.frameAt = now;
+    cam.interrupted = false;
     loopHandle = video.requestVideoFrameCallback(onVideoFrame);
     tick(now);
   }
@@ -1267,6 +1308,7 @@ void main() {
       syncControls();
     }
     if (facing) cam.facing = facing;
+    cam.interrupted = false;
     freshTemporal = true;
     levels.fresh = true;
     return true;
@@ -1281,6 +1323,7 @@ void main() {
       return;
     }
     const token = ++cam.token;
+    cam.retriedAt = -Infinity;
     setState("starting");
     try {
       if (!(await connect(settings.camera))) return;
@@ -1313,6 +1356,7 @@ void main() {
     cam.busy = true;
     btnFlip.disabled = true;
     cameraSelect.disabled = true;
+    updateStatus();
     const token = ++cam.token;
     // Phones often refuse to open a second camera while the first is still running.
     stopTracks(cam.stream);
@@ -1331,8 +1375,22 @@ void main() {
         cam.busy = false;
         btnFlip.disabled = false;
         cameraSelect.disabled = false;
+        updateStatus();
       }
     }
+  }
+
+  // A fresh stream from the same camera. One that stalls again right away is given up on,
+  // so the page doesn't keep fighting another app for the camera.
+  function reconnect() {
+    const now = performance.now();
+    if (now - cam.retriedAt < RETRY_MS) {
+      stopCamera();
+      showCameraError({ name: "NotReadableError" });
+      return;
+    }
+    cam.retriedAt = now;
+    switchCamera(cam.deviceId || settings.camera);
   }
 
   function flipCamera() {
@@ -1346,9 +1404,19 @@ void main() {
   }
 
   function onTrackEnded(e) {
-    if (!cam.stream || !cam.stream.getTracks().includes(e.target)) return;
-    stopCamera();
-    toast("The camera was disconnected");
+    if (cam.stream && cam.stream.getTracks().includes(e.target)) cameraEnded();
+  }
+
+  // Unplugged, access revoked, or taken by another app while the page was in the
+  // background. Only the last is worth reconnecting; when paused, resume() does that.
+  function cameraEnded() {
+    if (document.hidden || state === "paused") return; // watchCamera() runs again on return
+    if (cam.interrupted) {
+      reconnect();
+    } else {
+      stopCamera();
+      toast("The camera was disconnected");
+    }
   }
 
   async function refreshDevices() {
@@ -1389,7 +1457,7 @@ void main() {
   }
 
   function pause() {
-    if (state !== "live" || !video.videoWidth) return;
+    if (state !== "live" || cam.busy || !video.videoWidth) return;
     frozen.width = video.videoWidth;
     frozen.height = video.videoHeight;
     frozen.getContext("2d").drawImage(video, 0, 0);
@@ -1397,7 +1465,11 @@ void main() {
   }
 
   function resume() {
-    if (state === "paused") setState("live");
+    if (state !== "paused") return;
+    // The camera keeps running while paused, unless it was lost or another app took it.
+    const track = cam.stream && cam.stream.getVideoTracks()[0];
+    if (!track || track.readyState === "ended" || track.muted) switchCamera(cam.deviceId || settings.camera);
+    else setState("live");
   }
 
   function setState(next) {
@@ -1427,6 +1499,9 @@ void main() {
       const s = Math.floor((performance.now() - rec.started) / 1000);
       kind = "rec";
       text = `Rec ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    } else if (cam.busy) {
+      kind = "wait";
+      text = "Connecting";
     } else if (state === "live") {
       kind = "live";
       text = "Live";
@@ -1857,6 +1932,9 @@ void main() {
   function onVisibility() {
     if (document.hidden) {
       stopLoop();
+      // Another app may take the camera meanwhile; watchCamera() checks on it on return.
+      cam.interrupted = true;
+      cam.retriedAt = -Infinity;
       return;
     }
     startLoop();

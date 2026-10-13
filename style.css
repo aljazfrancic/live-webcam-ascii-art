@@ -193,6 +193,10 @@ a {
   animation: pulse 1.8s ease-in-out infinite;
 }
 
+.status[data-kind="wait"]::before {
+  animation: pulse .8s ease-in-out infinite;
+}
+
 .status[data-kind="paused"] {
   color: #ffd166;
 }
