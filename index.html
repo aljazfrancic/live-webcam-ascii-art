@@ -1,65 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Webcam ASCII Art</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob: mediastream:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>ASCII Cam: live webcam ASCII art in your browser</title>
+  <meta name="description" content="Turn your webcam into live ASCII art right in the browser. GPU-accelerated and private by design: nothing is uploaded. Braille, blocks, color palettes, edge detection, snapshots, copy as text and video recording.">
+  <meta name="theme-color" content="#0c0f0e">
+  <meta name="color-scheme" content="dark">
+  <link rel="canonical" href="https://aljazfrancic.github.io/live-webcam-ascii-art/">
+  <link rel="icon" href="favicon.ico" sizes="32x32">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ASCII Cam">
+  <meta property="og:title" content="ASCII Cam: live webcam ASCII art">
+  <meta property="og:description" content="Turn your webcam into live ASCII art right in the browser. Private by design: nothing is uploaded.">
+  <meta property="og:url" content="https://aljazfrancic.github.io/live-webcam-ascii-art/">
+  <meta property="og:image" content="https://aljazfrancic.github.io/live-webcam-ascii-art/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The words ASCII CAM and a planet drawn in green ASCII characters, above the tagline: Live webcam to ASCII art, right in your browser">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
-  <div id="app">
-    <header id="controls">
-      <div id="controls-bar">
-        <h1>ASCII Cam</h1>
-        <div class="control-group">
-          <button id="btn-toggle" title="Start / Stop webcam">Start Camera</button>
-          <button id="btn-screenshot" title="Save snapshot as image" disabled>Screenshot</button>
-        </div>
-        <button id="btn-menu" title="Toggle controls" aria-label="Toggle controls">&#9776;</button>
-      </div>
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="logo" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="7" fill="#080b0a"/>
+      <rect width="32" height="32" rx="7" fill="currentColor" fill-opacity=".08"/>
+      <path fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4.5 9.5v-3a2 2 0 0 1 2-2h3M22.5 4.5h3a2 2 0 0 1 2 2v3M27.5 22.5v3a2 2 0 0 1-2 2h-3M9.5 27.5h-3a2 2 0 0 1-2-2v-3"/>
+      <g fill="none" stroke="currentColor" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19.3 11.2v5.6a2 2 0 0 0 4 0V16a7.3 7.3 0 1 0-2.9 5.9"/>
+        <circle cx="16" cy="16" r="3.3"/>
+      </g>
+    </symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6H8l1.5-2h5L16 6h2.5A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3.5v8"/><path d="M6.7 6.8a7.5 7.5 0 1 0 10.6 0"/></symbol>
+    <symbol id="i-flip" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 0 1 14.6-5.9L20 8"/><path d="M20 3.5V8h-4.5"/><path d="M20.5 12a8.5 8.5 0 0 1-14.6 5.9L4 16"/><path d="M4 20.5V16h4.5"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.5" height="14" rx="1.2"/><rect x="14" y="5" width="3.5" height="14" rx="1.2"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.6v12.8a.9.9 0 0 0 1.4.8l10-6.4a.9.9 0 0 0 0-1.6l-10-6.4A.9.9 0 0 0 8 5.6z"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17.5 7H20M4 17h2.5M11 17h9"/><circle cx="15.2" cy="7" r="2.3"/><circle cx="8.8" cy="17" r="2.3"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6A2.5 2.5 0 0 0 13 3.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/></symbol>
+    <symbol id="i-record" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><rect x="8.6" y="8.6" width="6.8" height="6.8" rx="1.4" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></symbol>
+    <symbol id="i-shrink" viewBox="0 0 24 24"><path d="M9 4v3.5A1.5 1.5 0 0 1 7.5 9H4M20 9h-3.5A1.5 1.5 0 0 1 15 7.5V4M15 20v-3.5a1.5 1.5 0 0 1 1.5-1.5H20M4 15h3.5A1.5 1.5 0 0 1 9 16.5V20"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.1-2.4 3.6"/><path d="M12 17.3v.1"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+  </svg>
 
-      <div id="controls-drawer">
-
-      <div class="control-group">
-        <label for="resolution">Resolution</label>
-        <input type="range" id="resolution" min="40" max="200" value="100">
-        <span id="resolution-val">100</span>
+  <div class="app" id="app" data-state="idle">
+    <header class="bar top">
+      <div class="brand">
+        <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
+        <span class="brand-name">ASCII <span>Cam</span></span>
       </div>
-
-      <div class="control-group">
-        <label for="font-size">Font Size</label>
-        <input type="range" id="font-size" min="4" max="20" value="8">
-        <span id="font-size-val">8px</span>
-      </div>
-
-      <div class="control-group">
-        <label for="ramp-select">Char Ramp</label>
-        <select id="ramp-select">
-          <option value="standard" selected>Standard</option>
-          <option value="simple">Simple</option>
-          <option value="detailed">Detailed</option>
-          <option value="blocks">Blocks</option>
-        </select>
-      </div>
-
-      <div class="control-group toggles">
-        <label class="toggle-label">
-          <input type="checkbox" id="color-mode"> Color
-        </label>
-        <label class="toggle-label">
-          <input type="checkbox" id="invert"> Invert
-        </label>
-      </div>
+      <div class="actions">
+        <button class="icon-btn" id="btn-copy" type="button" aria-label="Copy frame as text" title="Copy frame as text (C)"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg></button>
+        <button class="icon-btn rec-btn" id="btn-record" type="button" aria-label="Record video" aria-pressed="false" title="Record video (R)" disabled><svg class="i" aria-hidden="true"><use id="rec-icon" href="#i-record"/></svg></button>
+        <button class="icon-btn" id="btn-fullscreen" type="button" aria-label="Enter full screen" title="Full screen (F)"><svg class="i" aria-hidden="true"><use id="fs-icon" href="#i-expand"/></svg></button>
+        <button class="icon-btn" id="btn-help" type="button" aria-label="Help and keyboard shortcuts" aria-haspopup="dialog" title="Help (?)"><svg class="i" aria-hidden="true"><use href="#i-help"/></svg></button>
       </div>
     </header>
 
-    <main id="output-area">
-      <pre id="ascii-output">Press "Start Camera" to begin.</pre>
+    <main class="stage" id="stage">
+      <canvas id="screen" role="img" aria-label="Animated ASCII art preview"></canvas>
+      <span class="status" id="status" hidden></span>
+      <p class="hint" id="hint"><svg class="i" aria-hidden="true"><use href="#i-lock"/></svg><span id="hint-text">Your video never leaves this device.</span><span class="kbd-hint" id="kbd-hint">Press <kbd>Space</kbd> to start.</span></p>
+      <div class="notice" id="notice" role="alert" hidden>
+        <h2 id="notice-title"></h2>
+        <p id="notice-text"></p>
+        <div class="notice-actions">
+          <button class="btn" id="notice-close" type="button">Dismiss</button>
+          <button class="btn primary" id="notice-retry" type="button">Try again</button>
+        </div>
+      </div>
+      <div class="stats" id="stats" aria-hidden="true" hidden></div>
+      <div class="flash" id="flash"></div>
     </main>
+
+    <aside class="panel" id="panel" aria-labelledby="panel-title" hidden>
+      <div class="panel-head">
+        <h2 id="panel-title">Settings</h2>
+        <button class="icon-btn" id="btn-panel-close" type="button" aria-label="Close settings"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <div class="panel-body">
+        <section class="group" aria-labelledby="g-chars">
+          <h3 id="g-chars">Characters</h3>
+          <div class="options" id="charset-group" role="radiogroup" aria-labelledby="g-chars"></div>
+          <label class="field" id="custom-field" hidden>
+            <span>Your characters, any order</span>
+            <input id="custom-chars" type="text" maxlength="96" spellcheck="false" autocomplete="off" autocapitalize="off">
+          </label>
+        </section>
+
+        <section class="group" aria-labelledby="g-colors">
+          <h3 id="g-colors">Colors</h3>
+          <div class="swatches" id="palette-group" role="radiogroup" aria-labelledby="g-colors"></div>
+        </section>
+
+        <section class="group" aria-labelledby="g-image">
+          <h3 id="g-image">Image</h3>
+          <label class="slider">
+            <span class="slider-head"><span>Detail</span><output id="detail-out" for="detail"></output></span>
+            <input type="range" id="detail" min="24" max="320" step="2">
+          </label>
+          <label class="slider">
+            <span class="slider-head"><span>Brightness</span><output id="brightness-out" for="brightness"></output></span>
+            <input type="range" id="brightness" min="-100" max="100" step="1" data-bipolar>
+          </label>
+          <label class="slider">
+            <span class="slider-head"><span>Contrast</span><output id="contrast-out" for="contrast"></output></span>
+            <input type="range" id="contrast" min="-100" max="100" step="1" data-bipolar>
+          </label>
+          <div class="switches">
+            <label class="switch"><span>Auto levels</span><input type="checkbox" role="switch" id="auto-levels"><i aria-hidden="true"></i></label>
+            <label class="switch"><span>Stabilize</span><input type="checkbox" role="switch" id="smooth"><i aria-hidden="true"></i></label>
+            <label class="switch"><span>Invert</span><input type="checkbox" role="switch" id="invert"><i aria-hidden="true"></i></label>
+            <label class="switch"><span>Mirror</span><input type="checkbox" role="switch" id="mirror"><i aria-hidden="true"></i></label>
+            <label class="switch" id="edges-switch"><span>Edges</span><input type="checkbox" role="switch" id="edges"><i aria-hidden="true"></i></label>
+            <label class="switch"><span>Stats</span><input type="checkbox" role="switch" id="show-stats"><i aria-hidden="true"></i></label>
+          </div>
+        </section>
+
+        <section class="group" aria-labelledby="g-perf">
+          <h3 id="g-perf">Camera &amp; performance</h3>
+          <label class="field" id="camera-field" hidden>
+            <span>Camera</span>
+            <select id="camera-select"></select>
+          </label>
+          <div class="field">
+            <span id="fps-label">Frame rate limit</span>
+            <div class="chips" id="fps-group" role="radiogroup" aria-labelledby="fps-label"></div>
+          </div>
+        </section>
+
+        <div class="panel-foot">
+          <button class="btn" id="btn-reset" type="button">Reset to defaults</button>
+          <p>Runs entirely on your device. <a href="https://github.com/aljazfrancic/live-webcam-ascii-art" target="_blank" rel="noopener">Source on GitHub</a></p>
+        </div>
+      </div>
+    </aside>
+
+    <nav class="bar dock" aria-label="Camera controls">
+      <div class="dock-side start">
+        <button class="dock-btn" id="btn-flip" type="button" aria-label="Switch camera" title="Switch camera (V)" hidden><svg class="i" aria-hidden="true"><use href="#i-flip"/></svg></button>
+        <button class="dock-btn live-only" id="btn-pause" type="button" aria-label="Pause" aria-pressed="false" title="Pause (Space)"><svg class="i" aria-hidden="true"><use id="pause-icon" href="#i-pause"/></svg></button>
+      </div>
+      <button class="main-btn" id="btn-main" type="button" aria-label="Start camera" title="Start camera (Space)">
+        <svg class="i" aria-hidden="true"><use href="#i-camera"/></svg>
+        <span class="main-label" id="main-label">Start camera</span>
+      </button>
+      <div class="dock-side end">
+        <button class="dock-btn live-only" id="btn-stop" type="button" aria-label="Turn camera off" title="Turn camera off (X)"><svg class="i" aria-hidden="true"><use href="#i-power"/></svg></button>
+        <button class="dock-btn" id="btn-settings" type="button" aria-label="Settings" aria-expanded="false" aria-controls="panel" title="Settings (O)"><svg class="i" aria-hidden="true"><use href="#i-sliders"/></svg></button>
+      </div>
+    </nav>
   </div>
 
-  <video id="webcam" autoplay playsinline></video>
+  <dialog class="help" id="help" aria-labelledby="help-title">
+    <div class="help-head">
+      <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
+      <h2 id="help-title">ASCII Cam</h2>
+      <button class="icon-btn" id="help-close" type="button" aria-label="Close help"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p>Live ASCII art from your webcam. Every frame is processed locally in your browser: no uploads, no tracking, no cookies.</p>
+    <h3>Keyboard shortcuts</h3>
+    <dl class="keys">
+      <div><dt><kbd>Space</kbd></dt><dd>Start camera / pause</dd></div>
+      <div><dt><kbd>S</kbd></dt><dd>Save snapshot (PNG)</dd></div>
+      <div><dt><kbd>C</kbd></dt><dd>Copy frame as text</dd></div>
+      <div><dt><kbd>R</kbd></dt><dd>Record video</dd></div>
+      <div><dt><kbd>1</kbd>–<kbd>6</kbd></dt><dd>Character set</dd></div>
+      <div><dt><kbd>P</kbd></dt><dd>Next color palette</dd></div>
+      <div><dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>Less / more detail</dd></div>
+      <div><dt><kbd>I</kbd> <kbd>E</kbd> <kbd>M</kbd></dt><dd>Invert, edges, mirror</dd></div>
+      <div><dt><kbd>V</kbd></dt><dd>Switch camera</dd></div>
+      <div><dt><kbd>X</kbd></dt><dd>Turn camera off</dd></div>
+      <div><dt><kbd>F</kbd></dt><dd>Full screen</dd></div>
+      <div><dt><kbd>O</kbd></dt><dd>Settings</dd></div>
+    </dl>
+    <p class="help-foot"><a href="https://github.com/aljazfrancic/live-webcam-ascii-art" target="_blank" rel="noopener">Source code on GitHub</a> · MIT License</p>
+  </dialog>
 
-  <script src="app.js"></script>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <video id="cam" class="cam" playsinline muted></video>
+  <noscript><p class="noscript">ASCII Cam needs JavaScript to read your camera. Nothing is ever uploaded.</p></noscript>
 </body>
 </html>
