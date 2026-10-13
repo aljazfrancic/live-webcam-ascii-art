@@ -1,0 +1,19 @@
+{
+  "name": "ASCII Cam: live webcam ASCII art",
+  "short_name": "ASCII Cam",
+  "description": "Turn your webcam into live ASCII art right in the browser. Private by design: nothing is uploaded.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060807",
+  "theme_color": "#0c0f0e",
+  "categories": ["photo", "entertainment", "utilities"],
+  "icons": [
+    { "src": "favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "assets/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "assets/icon-512.png", "type": "image/png", "sizes": "512x512" },
+    { "src": "assets/icon-maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ]
+}
